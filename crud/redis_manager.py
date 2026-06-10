@@ -5,9 +5,12 @@ class RedisManager:
     def __init__(self, redis_client):
         self.redis = redis_client
 
+    # 房间玩家列表 TTL：24 小时（安全兜底，防止异常未清理的残留 key）
+    ROOM_PLAYERS_TTL = 24 * 60 * 60
+
     def set_room_players(self, room_id: int, players: List[dict]):
         key = f"room:{room_id}:players"
-        self.redis.set(key, json.dumps(players))
+        self.redis.set(key, json.dumps(players), ex=self.ROOM_PLAYERS_TTL)
 
     def get_room_players(self, room_id: int) -> List[dict]:
         key = f"room:{room_id}:players"
