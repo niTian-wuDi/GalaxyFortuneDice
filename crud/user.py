@@ -14,6 +14,26 @@ def get_user_by_phone(db: Session, phone: str) -> Optional[User]:
 def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
     return db.query(User).filter(User.id == user_id).first()
 
+def get_user_info_with_stats(db: Session, user_id: int) -> Optional[dict]:
+    """查询用户信息并关联历史统计，返回合并后的字典"""
+    user = get_user_by_id(db, user_id)
+    if not user:
+        return None
+
+    stats = db.query(UserHistoryStats).filter(UserHistoryStats.user_id == user_id).first()
+
+    return {
+        "id": user.id,
+        "phone": user.phone,
+        "nickname": user.nickname,
+        "avatar": user.avatar,
+        "exp": user.exp,
+        "create_time": user.create_time,
+        "total_games": stats.total_games if stats else 0,
+        "total_wins": stats.total_wins if stats else 0,
+        "max_score": stats.max_score if stats else 0,
+    }
+
 def create_user(db: Session, user: UserCreate) -> User:
     hashed_password = None
     if user.password:

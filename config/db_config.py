@@ -5,12 +5,12 @@ import redis
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    MYSQL_HOST: str = "192.168.21.24"
+    MYSQL_HOST: str = "192.168.21.19"
     MYSQL_PORT: int = 3306
     MYSQL_USER: str = "root"
     MYSQL_PASSWORD: str = "Root%40wen"
     MYSQL_DB: str = "galaxy_dice"
-    REDIS_HOST: str = "192.168.21.24"
+    REDIS_HOST: str = "192.168.21.19"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     SECRET_KEY: str = "your-secret-key-change-in-production"
