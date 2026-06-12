@@ -44,7 +44,7 @@ async def guest_login(db: Session = Depends(get_db)):
     access_token = create_access_token(data={"sub": str(user.id)})
     return success(AuthResponse(token=access_token), msg="登录成功")
 
-# 获取当前用户详细信息（含历史统计）
+# 获取当前用户详细信息
 @router.get("/info")
 async def get_user_info(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     user_info = get_user_info_with_stats(db, current_user.id)

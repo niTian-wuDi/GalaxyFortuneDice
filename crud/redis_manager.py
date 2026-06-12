@@ -8,6 +8,10 @@ class RedisManager:
     # 房间玩家列表 TTL：24 小时（安全兜底，防止异常未清理的残留 key）
     ROOM_PLAYERS_TTL = 24 * 60 * 60
 
+    # 对局相关 TTL
+    MATCH_ACTIVE_TTL = 2 * 60 * 60       # 进行中的对局：2 小时
+    MATCH_FINISHED_TTL = 10 * 60          # 已结束的对局：10 分钟（留给客户端拉取最终成绩）
+
     def set_room_players(self, room_id: int, players: List[dict]):
         key = f"room:{room_id}:players"
         self.redis.set(key, json.dumps(players), ex=self.ROOM_PLAYERS_TTL)
@@ -31,6 +35,7 @@ class RedisManager:
         if "selectable_scores" in state_copy:
             state_copy["selectable_scores"] = json.dumps(state_copy["selectable_scores"])
         self.redis.hset(key, mapping=state_copy)
+        self.redis.expire(key, self.MATCH_ACTIVE_TTL)
 
     def get_match_state(self, match_id: str) -> Optional[dict]:
         key = f"match:{match_id}:state"
@@ -69,6 +74,7 @@ class RedisManager:
             "total_score": 0,
             "yahtzee_bonus_count": 0
         })
+        self.redis.expire(key, self.MATCH_ACTIVE_TTL)
 
     def get_player_data(self, match_id: int, user_id: int) -> Optional[dict]:
         key = f"match:{match_id}:player:{user_id}"
@@ -90,6 +96,7 @@ class RedisManager:
             "dice_values": json.dumps(dice_values),
             "locked_dice": json.dumps(locked_dice)
         })
+        self.redis.expire(key, self.MATCH_ACTIVE_TTL)
 
     def add_player_score(self, match_id: int, user_id: int, score_type: str, score: int):
         key = f"match:{match_id}:player:{user_id}"
@@ -108,6 +115,7 @@ class RedisManager:
             "used_scores": json.dumps(used_scores),
             "total_score": total_score
         })
+        self.redis.expire(key, self.MATCH_ACTIVE_TTL)
 
     def add_yahtzee_bonus(self, match_id: int, user_id: int, bonus: int):
         key = f"match:{match_id}:player:{user_id}"
@@ -123,6 +131,7 @@ class RedisManager:
             "total_score": total_score,
             "yahtzee_bonus_count": yahtzee_bonus_count
         })
+        self.redis.expire(key, self.MATCH_ACTIVE_TTL)
 
     def get_upper_section_score(self, match_id: int, user_id: int) -> int:
         key = f"match:{match_id}:player:{user_id}"
@@ -135,6 +144,12 @@ class RedisManager:
 
         return 0
 
+    def expire_match_keys(self, match_id: int, player_ids: List[int]):
+        """对局结算后，缩短所有对局相关 key 的 TTL，让其快速过期"""
+        self.redis.expire(f"match:{match_id}:state", self.MATCH_FINISHED_TTL)
+        for user_id in player_ids:
+            self.redis.expire(f"match:{match_id}:player:{user_id}", self.MATCH_FINISHED_TTL)
+
     def update_total_ranking(self, user_id: int, nickname: str, score: int):
         key = "ranking:total"
         member = f"{user_id}:{nickname}"
@@ -144,10 +159,14 @@ class RedisManager:
         key = "ranking:total"
         return self.redis.zrevrange(key, offset, offset + limit - 1, withscores=True)
 
+    # 每日排行榜 TTL：3 天（过期日期的排行榜无业务价值）
+    DAILY_RANKING_TTL = 3 * 24 * 60 * 60
+
     def update_daily_ranking(self, date: str, user_id: int, nickname: str, score: int):
         key = f"ranking:daily:{date}"
         member = f"{user_id}:{nickname}"
         self.redis.zadd(key, {member: score})
+        self.redis.expire(key, self.DAILY_RANKING_TTL)
 
     def get_daily_ranking(self, date: str, limit: int, offset: int = 0) -> List[tuple]:
         key = f"ranking:daily:{date}"
