@@ -385,7 +385,11 @@ async def select_score(score_data: SelectScore, db: Session = Depends(get_db), r
             # 更新对局状态为已结束
             state["status"] = "finished"
             redis_manager.set_match_state(score_data.match_id, state)
-            
+
+            # 缩短对局相关 key 的 TTL，让其快速过期
+            player_ids = [p["user_id"] for p in room_players]
+            redis_manager.expire_match_keys(score_data.match_id, player_ids)
+
             return success(SelectScoreResponse(round_score=round_score, total_score=total_score), msg="游戏结束")
     
     next_player = room_players[next_index]

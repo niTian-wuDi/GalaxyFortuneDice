@@ -5,15 +5,19 @@ import redis
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    MYSQL_HOST: str = "192.168.21.19"
+    # 显式指定 .env 文件路径（相对于项目根目录）
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    # 敏感配置不设默认值，必须通过 .env 或环境变量提供
+    MYSQL_HOST: str
     MYSQL_PORT: int = 3306
-    MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = "Root%40wen"
-    MYSQL_DB: str = "galaxy_dice"
-    REDIS_HOST: str = "192.168.21.19"
+    MYSQL_USER: str
+    MYSQL_PASSWORD: str
+    MYSQL_DB: str
+    REDIS_HOST: str
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
-    SECRET_KEY: str = "your-secret-key-change-in-production"
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_DAYS: int = 1
 
